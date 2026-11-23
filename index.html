@@ -1,57 +1,200 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      padding: 20px;
-      background: var(--tg-theme-bg-color, #fff);
-      color: var(--tg-theme-text-color, #000);
-    }
-    button {
-      width: 80%;
-      margin: 8px;
-      padding: 14px;
-      font-size: 18px;
-      border: none;
-      border-radius: 12px;
-      background: var(--tg-theme-button-color, #2481cc);
-      color: var(--tg-theme-button-text-color, #fff);
-    }
-    #count { font-size: 64px; margin: 20px 0; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<title>Быстрые рецепты</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(160deg, #1f1c2c, #2b2340);
+    color: #fff;
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+  }
+  h1 { text-align: center; font-size: 26px; margin: 10px 0 4px; }
+  .subtitle { text-align: center; color: #b9b3d1; margin-bottom: 28px; }
+  .menu-btn {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; padding: 18px; margin-bottom: 14px;
+    border: none; border-radius: 18px; cursor: pointer;
+    color: #fff; font-size: 18px; font-weight: 600; text-align: left;
+    box-shadow: 0 6px 18px rgba(0,0,0,.3);
+    transition: transform .1s;
+  }
+  .menu-btn:active { transform: scale(.97); }
+  .menu-btn .icon { font-size: 30px; }
+  .menu-btn small { display: block; font-weight: 400; opacity: .85; font-size: 13px; }
+  .b1 { background: linear-gradient(135deg, #ff7a59, #ff4e7a); }
+  .b2 { background: linear-gradient(135deg, #3fa9f5, #6a5cff); }
+  .b3 { background: linear-gradient(135deg, #2ecc8f, #1f9e9e); }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  h2 { margin-bottom: 16px; }
+  .back { background: none; border: none; color: #b9b3d1; font-size: 16px; margin-bottom: 12px; cursor: pointer; }
+  input {
+    width: 100%; padding: 14px; border-radius: 14px; border: none;
+    font-size: 16px; margin-bottom: 10px; background: #3a3354; color: #fff;
+  }
+  input::placeholder { color: #9d96b8; }
+  .go {
+    width: 100%; padding: 14px; border: none; border-radius: 14px;
+    background: #6a5cff; color: #fff; font-size: 16px; font-weight: 600;
+    margin-bottom: 18px; cursor: pointer;
+  }
+  .card {
+    background: rgba(255,255,255,.07); border-radius: 16px;
+    padding: 14px; margin-bottom: 12px; cursor: pointer;
+  }
+  .card-top { display: flex; justify-content: space-between; align-items: center; }
+  .card h3 { font-size: 17px; }
+  .time { background: #6a5cff; padding: 4px 10px; border-radius: 10px; font-size: 13px; white-space: nowrap; }
+  .ingr { color: #b9b3d1; font-size: 14px; margin-top: 6px; }
+  .missing { color: #ff8a8a; font-size: 13px; margin-top: 4px; }
+  .have { color: #6ee7b0; font-size: 13px; margin-top: 4px; }
+  .steps { display: none; margin-top: 10px; padding-left: 18px; font-size: 14px; line-height: 1.5; }
+  .card.open .steps { display: block; }
+  .empty { text-align: center; color: #b9b3d1; margin-top: 20px; }
+</style>
 </head>
 <body>
-  <h2 id="hello">Привет!</h2>
-  <p>Это мини-приложение внутри Telegram</p>
-  <div id="count">0</div>
-  <button onclick="add()">Нажми меня 👆</button>
-  <button onclick="send()">Отправить результат боту</button>
 
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+<!-- Главный экран -->
+<div id="home" class="screen active">
+  <h1>🍳 Быстрые рецепты</h1>
+  <p class="subtitle">Что приготовить прямо сейчас?</p>
+  <button class="menu-btn b1" onclick="showAll()">
+    <span class="icon">📖</span><span>Все рецепты<small>Полный список</small></span>
+  </button>
+  <button class="menu-btn b2" onclick="openScreen('timeScreen')">
+    <span class="icon">⏱️</span><span>По времени<small>Сколько у тебя минут?</small></span>
+  </button>
+  <button class="menu-btn b3" onclick="openScreen('ingrScreen')">
+    <span class="icon">🥕</span><span>По ингредиентам<small>Что есть в холодильнике?</small></span>
+  </button>
+</div>
 
-    const user = tg.initDataUnsafe.user;
-    if (user) {
-      document.getElementById("hello").innerText = "Привет, " + user.first_name + "!";
-    }
+<!-- Все рецепты -->
+<div id="allScreen" class="screen">
+  <button class="back" onclick="goHome()">← Назад</button>
+  <h2>📖 Все рецепты</h2>
+  <div id="allList"></div>
+</div>
 
-    let count = 0;
-    function add() {
-      count++;
-      document.getElementById("count").innerText = count;
-      tg.HapticFeedback.impactOccurred("light");
-    }
+<!-- По времени -->
+<div id="timeScreen" class="screen">
+  <button class="back" onclick="goHome()">← Назад</button>
+  <h2>⏱️ По времени</h2>
+  <input id="minutes" type="number" min="1" placeholder="Сколько минут есть? Например, 15">
+  <button class="go" onclick="searchByTime()">Подобрать</button>
+  <div id="timeList"></div>
+</div>
 
-    function send() {
-      tg.sendData(String(count));
-    }
-  </script>
+<!-- По ингредиентам -->
+<div id="ingrScreen" class="screen">
+  <button class="back" onclick="goHome()">← Назад</button>
+  <h2>🥕 По ингредиентам</h2>
+  <input id="ingredients" placeholder="Через запятую: яйца, сыр, помидор">
+  <button class="go" onclick="searchByIngr()">Подобрать</button>
+  <div id="ingrList"></div>
+</div>
+
+<script>
+const tg = window.Telegram ? window.Telegram.WebApp : null;
+if (tg) { tg.ready(); tg.expand(); }
+
+// ===== База рецептов: добавляй свои по образцу =====
+const recipes = [
+  { name: "Яичница с помидорами", time: 10,
+    ingredients: ["яйца", "помидор", "масло", "соль"],
+    steps: ["Разогрей сковороду с маслом", "Обжарь нарезанный помидор 2 минуты", "Разбей яйца, посоли", "Жарь 3–4 минуты"] },
+  { name: "Омлет с сыром", time: 10,
+    ingredients: ["яйца", "молоко", "сыр", "соль"],
+    steps: ["Взбей яйца с молоком и солью", "Вылей на горячую сковороду", "Посыпь тёртым сыром", "Накрой крышкой на 4 минуты"] },
+  { name: "Горячие бутерброды", time: 10,
+    ingredients: ["хлеб", "сыр", "колбаса"],
+    steps: ["Положи на хлеб колбасу и сыр", "Запекай в микроволновке 1 минуту или в духовке 5 минут"] },
+  { name: "Паста с сыром", time: 15,
+    ingredients: ["макароны", "сыр", "масло", "соль"],
+    steps: ["Отвари макароны в подсоленной воде", "Слей воду, добавь масло", "Перемешай с тёртым сыром"] },
+  { name: "Салат из овощей", time: 10,
+    ingredients: ["помидор", "огурец", "лук", "масло", "соль"],
+    steps: ["Нарежь овощи", "Посоли", "Заправь маслом и перемешай"] },
+  { name: "Овсянка с бананом", time: 7,
+    ingredients: ["овсянка", "молоко", "банан"],
+    steps: ["Залей овсянку молоком", "Вари 5 минут, помешивая", "Добавь нарезанный банан"] },
+  { name: "Гречка с курицей", time: 30,
+    ingredients: ["гречка", "курица", "лук", "масло", "соль"],
+    steps: ["Отвари гречку", "Обжарь лук и кусочки курицы 10–12 минут", "Смешай с гречкой, посоли"] },
+  { name: "Картофельное пюре", time: 25,
+    ingredients: ["картофель", "молоко", "масло", "соль"],
+    steps: ["Почисти и отвари картофель 20 минут", "Слей воду", "Добавь масло и тёплое молоко, разомни"] },
+];
+
+// ===== Навигация =====
+function openScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo(0, 0);
+  if (tg) {
+    if (id === "home") tg.BackButton.hide(); else tg.BackButton.show();
+  }
+}
+function goHome() { openScreen("home"); }
+if (tg) tg.BackButton.onClick(goHome);
+
+// ===== Карточка рецепта =====
+function card(r, extra = "") {
+  return `
+    <div class="card" onclick="this.classList.toggle('open')">
+      <div class="card-top"><h3>${r.name}</h3><span class="time">⏱ ${r.time} мин</span></div>
+      <div class="ingr">${r.ingredients.join(", ")}</div>
+      ${extra}
+      <ol class="steps">${r.steps.map(s => `<li>${s}</li>`).join("")}</ol>
+    </div>`;
+}
+function render(listId, html) {
+  document.getElementById(listId).innerHTML = html || `<p class="empty">Ничего не нашлось 😔</p>`;
+}
+
+// ===== 1. Все рецепты =====
+function showAll() {
+  const sorted = [...recipes].sort((a, b) => a.time - b.time);
+  render("allList", sorted.map(r => card(r)).join(""));
+  openScreen("allScreen");
+}
+
+// ===== 2. По времени =====
+function searchByTime() {
+  const min = parseInt(document.getElementById("minutes").value);
+  if (!min) return render("timeList", `<p class="empty">Введи количество минут</p>`);
+  const found = recipes.filter(r => r.time <= min).sort((a, b) => b.time - a.time);
+  render("timeList", found.map(r => card(r)).join(""));
+}
+
+// ===== 3. По ингредиентам =====
+function searchByIngr() {
+  const have = document.getElementById("ingredients").value
+    .toLowerCase().split(",").map(s => s.trim()).filter(Boolean);
+  if (!have.length) return render("ingrList", `<p class="empty">Перечисли продукты через запятую</p>`);
+
+  const matches = (ing) => have.some(h => ing.includes(h) || h.includes(ing));
+  const results = recipes.map(r => {
+    const got = r.ingredients.filter(matches);
+    const miss = r.ingredients.filter(i => !matches(i));
+    return { r, got, miss };
+  })
+  .filter(x => x.got.length > 0)
+  .sort((a, b) => a.miss.length - b.miss.length);
+
+  render("ingrList", results.map(x => card(x.r,
+    x.miss.length === 0
+      ? `<div class="have">✅ Всё есть!</div>`
+      : `<div class="missing">Не хватает: ${x.miss.join(", ")}</div>`
+  )).join(""));
+}
+</script>
 </body>
 </html>
